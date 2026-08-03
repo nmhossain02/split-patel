@@ -1,0 +1,113 @@
+// Archived on 2026-08-02. This abandoned PostgreSQL model is not the current
+// or target SplitPatel storage model. See docs/architecture/firestore-data-model.md.
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  name      String
+  avatar    String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations
+  tabsAsParticipant TabParticipant[]
+  expensesPaid      Expense[]
+  expenseItems      ExpenseItem[]
+  paymentsSent      Payment[]    @relation("SentPayments")
+  paymentsReceived  Payment[]    @relation("ReceivedPayments")
+  expenseAssignments ExpenseItemAssignment[]
+}
+
+model Tab {
+  id        String    @id @default(uuid())
+  name      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations
+  participants TabParticipant[]
+  expenses     Expense[]
+}
+
+model TabParticipant {
+  id        String   @id @default(uuid())
+  tabId     String
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  tab       Tab      @relation(fields: [tabId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([tabId, userId])
+}
+
+model Expense {
+  id          String        @id @default(uuid())
+  title       String
+  date        DateTime
+  totalAmount Float
+  tabId       String
+  paidById    String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  tab         Tab           @relation(fields: [tabId], references: [id])
+  paidBy      User          @relation(fields: [paidById], references: [id])
+  items       ExpenseItem[]
+}
+
+model ExpenseItem {
+  id         String   @id @default(uuid())
+  name       String
+  amount     Float
+  expenseId  String
+  paidById   String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  expense    Expense  @relation(fields: [expenseId], references: [id])
+  paidBy     User     @relation(fields: [paidById], references: [id])
+  assignedTo ExpenseItemAssignment[]
+}
+
+model ExpenseItemAssignment {
+  id            String      @id @default(uuid())
+  expenseItemId String
+  userId        String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Relations
+  expenseItem   ExpenseItem @relation(fields: [expenseItemId], references: [id])
+  user          User        @relation(fields: [userId], references: [id])
+
+  @@unique([expenseItemId, userId])
+}
+
+model Payment {
+  id            String   @id @default(uuid())
+  amount        Float
+  fromId        String
+  toId          String
+  status        String
+  paymentMethod String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  from          User     @relation("SentPayments", fields: [fromId], references: [id])
+  to            User     @relation("ReceivedPayments", fields: [toId], references: [id])
+}

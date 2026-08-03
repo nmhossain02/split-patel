@@ -1,74 +1,127 @@
 # SplitPatel
 
-A modern expense-sharing application built with React, TypeScript, and Vite. SplitPatel helps users easily track and split expenses with friends, family, or colleagues.
+SplitPatel is an expense-sharing application for groups, trips, households, and
+events. It is being built with Expo and Firebase for web, Android, and iOS.
 
-## Features
+## Project status
 
-- Create and manage expense tabs for different groups or events
-- Add expenses with multiple items and assign them to different people
-- Real-time balance tracking showing who owes whom
-- Integration with payment platforms (PayPal, Venmo, Cash App)
-- Modern, responsive UI built with Chakra UI
-- Type-safe development with TypeScript
-- Form validation with Zod and React Hook Form
+The repository contains a production-oriented release candidate. The complete web
+flow has passed both a real browser walkthrough and an automated two-user journey.
+Domain, application, Firestore emulator, security-rule, and production web build
+checks pass. Promotion to a public release still requires the environment-specific
+web OAuth and Android/iOS provider smoke checks listed in the
+[release runbook](docs/operations/release.md).
 
-## Tech Stack
+Implemented behavior includes:
 
-- **Frontend**: React + TypeScript + Vite
-- **UI Framework**: Chakra UI
-- **Form Handling**: React Hook Form + Zod
-- **Database**: PostgreSQL with Prisma ORM
-- **Authentication**: (Mock implementation, ready for integration with Auth0, Firebase, etc.)
-- **Payment Processing**: (Mock implementation, ready for integration with PayPal, Venmo, etc.)
+- Google authentication, private account provisioning, App Check, protected
+  routing, session restoration, and logout
+- Tab creation, roles, invitations, ownership transfer, rename, archive, removal,
+  leave, stable history pagination, and authorization
+- Itemized expenses with multiple contributors, deterministic integer splitting,
+  edit, void, balances, payment suggestions, settlements, and settlement voiding
+- Server-authoritative idempotent transactions, audit records, strict Firestore
+  rules, and scheduled balance-projection verification and repair
+- Layered unit, application, emulator, rule, component, and browser-flow tests
 
-## Getting Started
+Feature status is tracked in [the documentation index](docs/README.md). A feature
+is not complete until its acceptance criteria and required verification matrix
+pass on every supported platform.
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/split-patel.git
-   cd split-patel
-   ```
+## Technology
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+- Expo 54 and React Native 0.81
+- Expo Router 6
+- TypeScript in strict mode
+- Firebase Authentication and Cloud Firestore
+- React Native Firebase on Android and iOS
+- Firebase Web SDK in browsers
+- Jest and React Native Testing Library
 
-3. Set up the database:
-   - Create a PostgreSQL database
-   - Copy `.env.example` to `.env` and update the database URL
-   - Run database migrations:
-     ```bash
-     npx prisma migrate dev
-     ```
+The target architecture separates pure expense-sharing rules from application
+use cases, Firebase adapters, and React Native UI. See
+[Modular architecture](docs/architecture/modular-architecture.md).
 
-4. Start the development server:
-   ```bash
-   npm run dev
-   ```
+## Documentation
 
-## Project Structure
+- [Documentation and feature status](docs/README.md)
+- [Domain model](docs/architecture/domain-model.md)
+- [Firestore data and access model](docs/architecture/firestore-data-model.md)
+- [Modular architecture](docs/architecture/modular-architecture.md)
+- [Layered testing strategy](docs/testing/strategy.md)
+- [Acceptance-criterion traceability](docs/testing/traceability.md)
+- [Local release-candidate evidence](docs/testing/release-evidence.md)
+- [Authentication specification](docs/features/001-user-authentication.md)
+- [Tab management specification](docs/features/002-tab-management.md)
+- [Expense sharing specification](docs/features/003-expense-sharing.md)
+- [Contributing](CONTRIBUTING.md)
 
+## Local development
+
+### Prerequisites
+
+- A supported Node.js release and npm
+- An Expo-compatible Android emulator, iOS simulator, or browser
+- Access to the development Firebase project
+- A development build for native Google Sign-In and React Native Firebase
+
+Expo Go is not sufficient for native authentication because the app uses custom
+native modules.
+
+### Install and run
+
+```bash
+npm install
+npm run web
 ```
-src/
-├── components/     # Reusable UI components
-├── features/       # Feature-specific components and logic
-├── hooks/         # Custom React hooks
-├── lib/           # Third-party library configurations
-├── services/      # Service abstractions (auth, database, payments)
-├── store/         # State management
-├── types/         # TypeScript type definitions
-└── utils/         # Utility functions
+
+For a native platform, install a development build and then run one of:
+
+```bash
+npm run android
+npm run ios
 ```
 
-## Contributing
+The native build requires the correct development versions of
+`google-services.json` and `GoogleService-Info.plist`. Production and development
+Firebase projects must remain separate. Never use a production test account or
+production data for local verification.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+Copy `.env.example` to `.env.local` and use environment-specific
+Firebase values. The browser flow uses only local emulator identities:
 
-## License
+```bash
+npm run test:e2e
+```
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## Quality checks
+
+Run these before requesting review:
+
+```bash
+npm test -- --runInBand
+npm run lint
+npm run typecheck
+npm run test:docs
+npm run test:rules
+npm run test:backend
+npm run build:web
+npm run test:e2e
+```
+
+The target test approach is intentionally layered. Pure domain scenarios and
+application workflows run without Firebase or UI dependencies. Firestore emulator
+tests verify adapters and security rules. UI tests verify rendering and frontend
+behavior. A small set of expensive end-to-end smoke tests is added only after the
+lower layers are reliable.
+
+## Production target
+
+The initial deployment is expected to serve fewer than 100 users. The design
+still prioritizes correct financial calculations, authorization, idempotency,
+auditability, recoverability, and maintainable data access patterns. Low expected
+traffic is not treated as permission to weaken those properties.
+
+See [release and deployment](docs/operations/release.md) and
+[operations, recovery, and incidents](docs/operations/recovery.md) before promoting
+a build or changing production data.

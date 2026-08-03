@@ -1,0 +1,13 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "noEmit": true,
+    "types": ["node", "jest"],
+    "baseUrl": "..",
+    "isolatedModules": true
+  },
+  "include": ["src/**/*.ts", "../src/application/**/*.ts", "../src/domain/**/*.ts"],
+  "exclude": []
+}

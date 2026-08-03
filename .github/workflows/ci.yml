@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            functions/package-lock.json
+      - run: npm ci
+      - run: npm --prefix functions ci
+      - run: npm run test:docs
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test -- --runInBand
+      - run: npm run backend:build
+      - run: npx expo-doctor
+      - run: npm run build:web
+        env:
+          EXPO_PUBLIC_FIREBASE_API_KEY: ci-placeholder
+          EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: ci.invalid
+          EXPO_PUBLIC_FIREBASE_PROJECT_ID: split-patel-ci
+          EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: split-patel-ci.invalid
+          EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '000000000000'
+          EXPO_PUBLIC_FIREBASE_APP_ID: '1:000000000000:web:ci'
+          EXPO_PUBLIC_RECAPTCHA_ENTERPRISE_SITE_KEY: ci-placeholder
+
+  emulator-and-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            functions/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci
+      - run: npm --prefix functions ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:rules
+      - run: npm run test:backend
+      - run: npm run test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7

@@ -1,65 +1,59 @@
-import { z } from 'zod';
-import type { User } from '../types';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import auth from '@react-native-firebase/auth';
+import { AuthUser } from '@/domain/auth/types';
 
-const userSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-  name: z.string().min(2),
+const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+if (!googleWebClientId) {
+  throw new Error('EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID is required for native Google sign-in.');
+}
+
+GoogleSignin.configure({
+  webClientId: googleWebClientId,
 });
 
-export interface AuthService {
-  signUp(email: string, password: string, name: string): Promise<User>;
-  signIn(email: string, password: string): Promise<User>;
-  signOut(): Promise<void>;
-  getCurrentUser(): Promise<User | null>;
-  resetPassword(email: string): Promise<void>;
-}
+export const onGoogleButtonPress = async (): Promise<AuthUser | null> => {
+  await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+  const response = await GoogleSignin.signIn();
 
-// This is a mock implementation. In a real application, you would use a proper auth provider
-// like Firebase Auth, Auth0, or your own backend authentication system
-export class MockAuthService implements AuthService {
-  private currentUser: User | null = null;
-
-  async signUp(email: string, password: string, name: string): Promise<User> {
-    // Validate input
-    userSchema.parse({ email, password, name });
-
-    // In a real implementation, this would create a user in your auth provider
-    const user: User = {
-      id: Math.random().toString(36).substr(2, 9),
-      email,
-      name,
-    };
-
-    this.currentUser = user;
-    return user;
+  if (response.type !== 'success') {
+    return null;
   }
 
-  async signIn(email: string, password: string): Promise<User> {
-    // In a real implementation, this would verify credentials with your auth provider
-    const user: User = {
-      id: Math.random().toString(36).substr(2, 9),
-      email,
-      name: 'Test User',
-    };
-
-    this.currentUser = user;
-    return user;
+  const { idToken } = response.data;
+  if (!idToken) {
+    throw new Error('Google Sign-In did not return an ID token.');
   }
 
-  async signOut(): Promise<void> {
-    this.currentUser = null;
-  }
+  const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+  const userCredential = await auth().signInWithCredential(googleCredential);
+  const { user } = userCredential;
 
-  async getCurrentUser(): Promise<User | null> {
-    return this.currentUser;
-  }
+  return {
+    uid: user.uid,
+    displayName: user.displayName,
+    email: user.email,
+    photoURL: user.photoURL,
+  };
+};
 
-  async resetPassword(email: string): Promise<void> {
-    // In a real implementation, this would trigger a password reset email
-    console.log(`Password reset requested for ${email}`);
+export const signOut = async (): Promise<void> => {
+  await auth().signOut();
+  try {
+    await GoogleSignin.signOut();
+  } catch {
+    // Firebase is the application session authority. Google cleanup is best effort.
   }
-}
+};
 
-// Export a singleton instance
-export const authService = new MockAuthService(); 
+export const subscribeToAuthState = (
+  listener: (user: AuthUser | null) => void,
+): (() => void) => auth().onAuthStateChanged(user => listener(user ? {
+  uid: user.uid,
+  displayName: user.displayName,
+  email: user.email,
+  photoURL: user.photoURL,
+} : null));
+
+export const devSignIn = async (_email: string, _password: string, _displayName: string): Promise<void> => {
+  throw new Error('Emulator sign-in is available on web only.');
+};

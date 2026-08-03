@@ -1,0 +1,84 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function activeAccount() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.accountStatus == 'active';
+    }
+
+    function isActiveMember(tabId) {
+      return activeAccount()
+        && exists(/databases/$(database)/documents/tabs/$(tabId)/members/$(request.auth.uid))
+        && get(/databases/$(database)/documents/tabs/$(tabId)/members/$(request.auth.uid)).data.state == 'active';
+    }
+
+    match /profiles/{userId} {
+      allow read: if activeAccount();
+      allow write: if false;
+    }
+
+    match /users/{userId} {
+      allow read: if activeAccount() && request.auth.uid == userId;
+      allow write: if false;
+
+      match /mutationKeys/{mutationId} {
+        allow read, write: if false;
+      }
+    }
+
+    match /tabs/{tabId} {
+      allow get: if activeAccount() && request.auth.uid in resource.data.memberIds;
+      allow list: if activeAccount() && request.auth.uid in resource.data.memberIds;
+      allow write: if false;
+
+      match /members/{userId} {
+        allow read: if isActiveMember(tabId);
+        allow write: if false;
+      }
+
+      match /expenses/{expenseId} {
+        allow read: if isActiveMember(tabId);
+        allow write: if false;
+
+        match /items/{itemId} {
+          allow read: if isActiveMember(tabId);
+          allow write: if false;
+        }
+      }
+
+      match /settlements/{settlementId} {
+        allow read: if isActiveMember(tabId);
+        allow write: if false;
+      }
+
+      match /balances/{userId} {
+        allow read: if isActiveMember(tabId);
+        allow write: if false;
+      }
+
+      match /mutationKeys/{mutationId} {
+        allow read, write: if false;
+      }
+
+      match /auditEvents/{eventId} {
+        allow read, write: if false;
+      }
+    }
+
+    match /invitations/{invitationId} {
+      allow read: if activeAccount()
+        && (resource.data.recipientUid == request.auth.uid
+          || resource.data.inviterUid == request.auth.uid);
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

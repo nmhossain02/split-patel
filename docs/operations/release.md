@@ -82,12 +82,11 @@ invitation, a shared expense, balance calculation, settlement, session reload,
 logout, and protected-route denial. A local Android arm64 debug build also compiles
 successfully.
 
-Promotion remains blocked until a release operator verifies the real web OAuth and
-App Check configuration, runs signed Android and iOS builds, completes both native
-provider smoke rows on devices, and observes the hosted CI run. iOS compilation is
-not available from the current Linux workstation, and no Android device or emulator
-was connected for the current local verification. These are release gates, not
-optional follow-up work.
+The public GitHub `main` workflow passes both quality and emulator/browser jobs.
+Web promotion remains blocked until a release operator verifies the real web OAuth
+and App Check configuration, deploys the Firebase backend and web candidate, and
+completes the web provider smoke row. Signed Android and iOS builds and their device
+smoke rows are deferred native release gates and do not block a web-only release.
 
 ## Deployment order
 
@@ -96,8 +95,8 @@ optional follow-up work.
 3. Deploy Firestore rules.
 4. Deploy Cloud Functions and confirm callable and scheduled health.
 5. Deploy the static web export to preview, run the web smoke flow, then promote.
-6. Build signed native candidates with the production EAS environment, run the
-   native smoke matrix, and submit the exact tested artifacts.
+6. For a native release, build signed candidates with the production EAS
+   environment, run the native smoke matrix, and submit the exact tested artifacts.
 7. Monitor errors, latency, denied App Check requests, auth failures, and balance
    repair logs for at least 30 minutes after promotion.
 

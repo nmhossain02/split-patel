@@ -4,12 +4,13 @@
 
 - Verification date: 2026-08-02, America/Los_Angeles
 - Workspace: `/home/nabeel/projects/split-patel`
-- Source identity: no commit exists and no Git remote is configured
+- Published source: commit `6aa89a0` on the public `nmhossain02/split-patel` `main` branch
 - Runtime: Node 22.23.2, npm 10.9.8, Linux
 - Data boundary: dedicated local Firebase Auth, Firestore, and Functions emulators
 
-The lack of a commit means this evidence describes the current workspace only. It
-cannot yet be attached to an immutable source revision or hosted CI run.
+The initial public GitHub Actions run passed both the quality and
+emulator/browser jobs. Subsequent documentation and workflow-hardening commits
+must retain the same green matrix before web promotion.
 
 ## Clean-install automated matrix
 
@@ -82,21 +83,17 @@ It is not a signed or promotable production candidate.
 The following gates require external state unavailable from this workstation and
 remain unverified:
 
-1. Create an immutable commit, configure a Git remote, push it, and observe the
-   hosted CI matrix. The repository currently has no commits and no remote.
-2. Authenticate Firebase to the intended production project, read back the target,
+1. Authenticate Firebase to the intended production project, read back the target,
    deploy indexes, rules, and Functions, and verify index readiness and scheduled
    verifier health. The Firebase CLI has no authorized account.
-3. Configure production Google OAuth and App Check registrations, then complete
+2. Configure production Google OAuth and App Check registrations, then complete
    web login, reload restoration, logout, and console-error smoke checks using a
    non-production identity.
-4. Authenticate EAS, create signed Android and iOS production builds from the same
-   immutable commit, and complete login, cold-start restore, tab, expense,
-   settlement, logout, deep-link, and accessibility smoke checks on devices. EAS
-   is logged out, no Android bridge or device is available, and Linux cannot run
-   Xcode.
-5. Enable and verify production backup, recovery, budget, latency, function-error,
+3. Enable and verify production backup, recovery, budget, latency, function-error,
    App Check, and projection-mismatch controls described in the release runbook.
+
+Signed Android and iOS builds, real-provider smoke tests, and native accessibility
+checks are deferred platform gates. They do not block the current web-only target.
 
 These are blocking release gates. Local emulator, browser, and compile evidence do
 not substitute for them.

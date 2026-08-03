@@ -5,12 +5,13 @@ events. It is being built with Expo and Firebase for web, Android, and iOS.
 
 ## Project status
 
-The repository contains a production-oriented release candidate. The complete web
-flow has passed both a real browser walkthrough and an automated two-user journey.
-Domain, application, Firestore emulator, security-rule, and production web build
-checks pass. Promotion to a public release still requires the environment-specific
-web OAuth and Android/iOS provider smoke checks listed in the
-[release runbook](docs/operations/release.md).
+The repository contains a production-oriented web release candidate. The complete
+web flow has passed both a real browser walkthrough and an automated two-user
+journey. Domain, application, Firestore emulator, security-rule, hosted CI, and
+production web build checks pass. Web promotion still requires the
+environment-specific OAuth, App Check, Firebase deployment, and provider smoke
+checks listed in the [release runbook](docs/operations/release.md). Android and iOS
+are separate deferred release targets.
 
 Implemented behavior includes:
 
